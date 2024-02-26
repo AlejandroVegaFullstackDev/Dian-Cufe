@@ -6,7 +6,7 @@ db = SQLAlchemy()
 
 def init_db(app):
     password = quote_plus("RRoot123!@#")
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://root:{password}@localhost/facturas_dian'
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://root:{password}@mysql/facturas_dian'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  
     db.init_app(app)
 
