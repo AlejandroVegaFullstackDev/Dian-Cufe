@@ -18,7 +18,6 @@ def consult_invoice_information():
 
         for cufe, cufe_info in result.items():
             invoice = dict_to_invoice(cufe, cufe_info)
-
             db.session.add(invoice)
 
             for event_data in cufe_info["events"]:
