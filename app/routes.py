@@ -18,18 +18,18 @@ def consult_invoice_information():
 
         for cufe, cufe_info in result.items():
             invoice = dict_to_invoice(cufe, cufe_info)
+
             db.session.add(invoice)
 
             for event_data in cufe_info["events"]:
                 event = Event(
                     eventNumber=event_data["eventNumber"],
                     eventName=event_data["eventName"],
-                    invoice=invoice
+                    invoice=invoice 
                 )
                 db.session.add(event)
 
         db.session.commit()
-
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 400
