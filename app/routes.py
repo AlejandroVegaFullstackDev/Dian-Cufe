@@ -8,9 +8,7 @@ app = Flask(__name__)
 init_db(app)
 
 
-@app.route("/")
-def index():
-    return "Hello, World!"
+
 
 @app.route('/api/v1/consult_invoice_information', methods=['POST'])
 def consult_invoice_information():
