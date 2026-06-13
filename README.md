@@ -1,144 +1,126 @@
-CUFE‑Scraper API – Consulta masiva de facturas electrónicas DIAN
+# 🧾 CUFE Scraper DIAN — Consulta masiva de facturas electrónicas
 
-Servicio Flask + Selenium que automatiza la búsqueda de CUFEs en el catálogo DIAN y persiste la información en MySQL. Dockerizado para facilitar la ejecución local o en servidores.
+Servicio **Flask + Selenium** que automatiza la búsqueda de **CUFEs** en el
+[Catálogo de Facturación Electrónica de la DIAN](https://catalogo-vpfe.dian.gov.co/User/SearchDocument)
+y persiste la información estructurada en **MySQL**. Empaquetado con Docker.
 
-✨ ¿Qué hace este proyecto?
+![CI](https://github.com/AlejandroVegaFullstackDev/Dian-Cufe/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![Flask](https://img.shields.io/badge/flask-3.0-black)
+![Selenium](https://img.shields.io/badge/selenium-4-43B02A)
+![MySQL](https://img.shields.io/badge/mysql-5.7-336791)
 
-Recibe un array de CUFEs → consulta el Catálogo de Facturación Electrónica DIAN.
+---
 
-Extrae datos de emisor, receptor, eventos y el enlace a la representación gráfica.
+## ✨ Qué hace
 
-Guarda la respuesta estructurada en una base MySQL (facturas_dian).
+1. Recibe un **array de CUFEs** por una API REST.
+2. Por cada CUFE, automatiza la navegación en el catálogo DIAN con Selenium
+   (incluye reintentos ante el reCAPTCHA).
+3. Extrae **emisor**, **receptor**, **eventos** y el enlace a la representación
+   gráfica del documento.
+4. Persiste todo en MySQL (`invoices` + `events`) y devuelve el JSON resultante.
 
-Expone un endpoint REST POST /api/v1/consult_invoice_information que devuelve el JSON obtenido.
+---
 
-⚙️ Tecnologías
+## 🔌 API
 
-Capa
+### `POST /api/v1/consult_invoice_information`
 
-Tecnología
+**Request**
 
-Versión
-
-API
-
-Flask
-
-2.x
-
-Scraping
-
-Selenium + ChromeDriver
-
-4.x / Chrome estable
-
-BD
-
-MySQL
-
-5.7
-
-ORM
-
-SQLAlchemy
-
-2.x
-
-Contenedores
-
-Docker + Compose
-
-26+
-
-🚀 Puesta en marcha rápida
-
-# 1. Clona el repositorio
-$ git clone https://github.com/AlejandroVegaFullstackDev/cufe-scraper-api.git \
-  && cd cufe-scraper-api
-
-# 2. Arranca la pila
-$ docker compose up -d --build
-
-# 3. Prueba el endpoint (cURL)
-$ curl -X POST http://localhost:5000/api/v1/consult_invoice_information \
-  -H "Content-Type: application/json" \
-  -d '{"cufes":["<CUFE_1>","<CUFE_2>"]}'
-
-Nota: Chrome corre en modo incognito; activa el flag headless en scraper.py si lo deseas para entornos sin interfaz gráfica.
-
-🔗 Endpoint principal
-
-Método
-
-Ruta
-
-Descripción
-
-POST
-
-/api/v1/consult_invoice_information
-
-Consulta un array de CUFEs, scrapea la DIAN y persiste resultados
-
-Ejemplo de cuerpo
-
+```json
 {
-  "cufes": [
-    "12345...",
-    "67890..."
-  ]
+  "cufes": ["<cufe-1>", "<cufe-2>"]
 }
+```
 
-Respuesta (200)
+**Response `200`**
 
+```json
 {
-  "12345...": {
-    "sellerInformation": { "Document": "900123456", "Name": "ACME SAS" },
-    "receiverInformation": { "Document": "1012345678", "Name": "Juan Pérez" },
-    "events": [ { "eventNumber": "3", "eventName": "Recibo de bien" } ],
-    "linkGraphicRepresentation": "https://catalogo-vpfe.dian.gov.co/.../document.pdf"
-  },
-  "67890...": { ... }
+  "<cufe-1>": {
+    "sellerInformation":   { "Document": "900123456", "Name": "ACME S.A.S" },
+    "receiverInformation": { "Document": "800654321", "Name": "Cliente Ltda" },
+    "events": [
+      { "eventNumber": "030", "eventName": "Acuse de recibo" }
+    ],
+    "linkGraphicRepresentation": "https://catalogo-vpfe.dian.gov.co/..."
+  }
 }
+```
 
-Errores → 400 { "error": "mensaje" }.
+Si falta el campo `cufes` se responde `400` con `{"error": "..."}`.
 
-🗄️ Modelo de datos
+---
 
-Invoice(id, cufe, seller_document, seller_name, receiver_document, receiver_name, link_graphic_representation)
-Event(id, eventNumber, eventName, invoice_id*)
+## 🧱 Estructura
 
-Relación 1 :N → una factura tiene muchos eventos.
+```
+app/
+├── routes.py            # API Flask (endpoint REST)
+├── scraper.py           # Automatización Selenium del catálogo DIAN
+├── config_database.py   # Configuración SQLAlchemy + mapeo dict→ORM
+└── models.py            # Modelos Invoice y Event
+tests/
+└── test_mapping.py      # Tests unitarios del mapeo (sin DB)
+```
 
-🧪 Pruebas manuales vs. automáticas
+---
 
-El scraping depende de la UI pública de la DIAN (recaptcha, tiempos). Recomendación:
+## 🚀 Cómo correrlo
 
-Mantén ChromeDriver actualizado (webdriver-manager lo resuelve automáticamente).
+### Docker (recomendado)
 
-Ajusta WebDriverWait y time.sleep según latencia.
+```bash
+cp .env.example .env      # ajusta credenciales si quieres
+docker-compose up --build
+```
 
-Para pruebas unitarias, mockea scrape_info devolviendo JSON fijo.
+La API queda en `http://localhost:5000`. El contenedor ya trae Chrome y corre el
+scraper en modo headless (`SCRAPER_HEADLESS=1`).
 
-☁️ Despliegue
+### Local
 
-Funciona en cualquier VM/host que soporte Docker. Para producción:
+```bash
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env       # configura tu MySQL (DB_HOST=localhost, etc.)
+python app/routes.py
+```
 
-Activa headless Chrome.
+> Requiere Google Chrome instalado; `webdriver-manager` descarga el driver
+> automáticamente.
 
-Añade un scheduler (cron/k8s Job) si requieres consultas periódicas.
+---
 
-Protege el endpoint con token/API‑key si el servicio es público.
+## 🧪 Tests
 
-⚖️ Aviso legal
+```bash
+pip install -r requirements-dev.txt
+pytest --cov=app
+```
 
-Este proyecto es de uso educativo/personal. Es responsabilidad del usuario respetar los términos del portal DIAN y la legislación colombiana en materia de scraping y protección de datos.
+Los tests cubren el mapeo `dict → ORM` sin necesidad de base de datos ni
+navegador (incluyen la regresión del bug que insertaba los eventos por
+duplicado).
 
-📄 Licencia
+---
 
-Publicado bajo MIT.
+## 🔐 Configuración y secretos
 
-👨‍💻 Autor
+Toda la configuración sensible se lee de variables de entorno (`.env`, ignorado
+por git). Ver `.env.example`:
 
-Alejandro Vega – AlejandroVegaFullstackDev
+| Variable | Descripción | Default (dev) |
+|----------|-------------|---------------|
+| `DB_USER` / `DB_PASSWORD` | Credenciales MySQL | `root` / `root` |
+| `DB_HOST` / `DB_PORT` | Host y puerto MySQL | `mysql` / `3306` |
+| `DB_NAME` | Base de datos | `facturas_dian` |
+| `SCRAPER_HEADLESS` | `1` para Chrome headless | `0` |
 
+---
+
+## 🛠️ Stack
+
+`Python 3.11` · `Flask 3` · `Selenium 4` · `SQLAlchemy 2` · `MySQL 5.7` · `Docker`

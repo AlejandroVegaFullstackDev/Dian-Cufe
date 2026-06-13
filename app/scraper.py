@@ -1,3 +1,4 @@
+import os
 import time
 import json
 from selenium import webdriver
@@ -10,14 +11,33 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 
-def scrape_info(cufes):
+
+def _build_driver():
+    """Crea un WebDriver de Chrome en ventana de incógnito.
+
+    El modo headless se activa con la variable de entorno SCRAPER_HEADLESS=1
+    (útil en servidores sin entorno gráfico).
+    """
     options = Options()
     options.add_argument("--incognito")
-    #options.add_argument('--headless')
-    #options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    if os.getenv("SCRAPER_HEADLESS") == "1":
+        options.add_argument("--headless=new")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--no-sandbox")
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-    result = {} 
+
+def _quit_quietly(driver):
+    if driver is not None:
+        try:
+            driver.quit()
+        except Exception:
+            pass
+
+
+def scrape_info(cufes):
+    result = {}
+    driver = None
 
     for cufe in cufes:
         cufe_info = {
@@ -29,7 +49,11 @@ def scrape_info(cufes):
         intentos = 0
 
         while True:
-            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+            # Cierra el driver de la iteración anterior antes de abrir uno nuevo
+            # (antes se creaba una instancia por intento sin cerrar las previas,
+            #  lo que dejaba procesos de Chrome huérfanos acumulándose).
+            _quit_quietly(driver)
+            driver = _build_driver()
             try:
                 print(f"Procesando el cufe: {cufe}")
                 driver.get("https://catalogo-vpfe.dian.gov.co/User/SearchDocument")
@@ -111,5 +135,5 @@ def scrape_info(cufes):
 
         time.sleep(2)
 
-    driver.quit()
+    _quit_quietly(driver)
     return result
