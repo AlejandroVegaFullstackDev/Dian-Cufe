@@ -40,13 +40,13 @@ def dict_to_invoice(cufe, cufe_info):
         link_graphic_representation=cufe_info["linkGraphicRepresentation"]
     )
 
-    events_data = cufe_info.get("events", [])  
+    events_data = cufe_info.get("events", [])
     for event_data in events_data:
-        event = Event(
+        # append() ya enlaza el evento con la factura vía el backref de SQLAlchemy;
+        # pasar invoice=invoice además duplicaría el evento en la relación.
+        invoice.events.append(Event(
             eventNumber=event_data["eventNumber"],
             eventName=event_data["eventName"],
-            invoice=invoice
-        )
-        invoice.events.append(event)
+        ))
 
     return invoice
