@@ -1,0 +1,26 @@
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Variables de entorno (secretos)
+.env
+
+# Cachés de Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Cobertura y testing
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# Logs / artefactos
+*.log
+
+# Editor / SO
+.idea/
+.vscode/
+.DS_Store

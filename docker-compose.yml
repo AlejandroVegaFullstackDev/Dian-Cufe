@@ -1,4 +1,5 @@
-version: '3.10'
+# Los valores se leen del archivo `.env` (copia de `.env.example`). Si no existe,
+# se usan los defaults de desarrollo definidos con la sintaxis ${VAR:-default}.
 
 services:
   flask_app:
@@ -7,6 +8,13 @@ services:
       - "5000:5000"
     volumes:
       - ./app:/app
+    environment:
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-facturas_dian}
+      SCRAPER_HEADLESS: ${SCRAPER_HEADLESS:-1}
     depends_on:
       - mysql
 
@@ -15,5 +23,7 @@ services:
     container_name: mysql_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: "RRoot123!@#"
-      MYSQL_DATABASE: "facturas_dian"
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-facturas_dian}
+    ports:
+      - "3306:3306"
